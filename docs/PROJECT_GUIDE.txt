@@ -1,0 +1,205 @@
+=====================================================================
+RAZA FRESH MART - PROJECT GUIDE (Developer ke liye)
+Stack: React.js, Next.js 14 (App Router), JavaScript, Prisma,
+       Tailwind CSS, PostgreSQL     (TypeScript nahi)
+=====================================================================
+
+PEHLE YE SAMAJH LO
+---------------------------------------------------------------------
+Client: Hassan Raza, Peshawar ki grocery shop.
+Masla : WhatsApp orders sambhalna mushkil, stock ka pata nahi, rate roz badalte hain.
+Hal   : Urdu, mobile-first website + mobile-friendly admin panel.
+
+Features (45,000 ke scope me):
+ 1. Urdu RTL, mobile-first dukan (home, category, search)
+ 2. Cart + checkout (Cash on Delivery + EasyPaisa manual)
+ 3. Delivery charge: 1000 se kam = Rs 100, 1000 ya upar = free
+ 4. Admin panel: login, FAST rate update, stock mojood/khatam, product CRUD,
+    category, bulk import (200 products ek saath)
+ 5. Order management: Naya -> Pack -> Raaste me -> Pahunch gaya / Cancel
+ 6. Delivery boys ke liye address list + Google Maps link
+ 7. Naye order par Hassan ko WhatsApp alert
+
+Scope se BAHAR (likh kar client ko do): GPS live tracking, EasyPaisa/JazzCash
+API, mobile app, domain aur hosting ka kharcha.
+
+
+PROJECT STRUCTURE (kaun si file kya karti hai)
+---------------------------------------------------------------------
+prisma/schema.prisma   Database tables: Category, Product, Order, OrderItem
+prisma/seed.js         Sample data (testing ke liye)
+lib/prisma.js          Prisma client (ek hi connection dobara use hota hai)
+lib/config.js          Dukan ki settings, delivery charge ka logic
+lib/format.js          Urdu labels (unit, status), rupay format, maps link
+lib/auth.js            Admin login (signed cookie, 7 din)
+lib/whatsapp.js        Owner ko WhatsApp message bhejna
+components/            Dobara use hone wale UI hisse
+  CartContext.js       Cart ki state (localStorage me save)
+  Header, ProductCard  Customer side
+  PriceList            Fast rate update (blur/Enter par auto-save)
+  ProductForm, CategoryManager, ImportForm, OrderCard, StatusButtons   Admin
+app/(shop)/            Customer pages: home, cart, order/[code]
+app/admin/login        Admin login page
+app/admin/(panel)/     Admin pages: orders, delivery, products, categories
+app/api/orders         Customer order create (server par price dobara check)
+app/api/admin/*        Admin ke saare APIs (har ek me isAdmin() check)
+
+Design ke usool:
+ - Mobile-first: pehle chhoti screen, 2 column grid, bade buttons
+ - Server Components se data layao (Prisma), Client Components sirf wahan
+   jahan click/typing chahiye ("use client")
+ - Price server par DB se lo, customer ke bheje price par bharosa mat karo
+ - OrderItem me name aur price copy karo, taake rate badalne se purane
+   orders na badlein
+ - Har admin API me login check, sirf page chhupana kaafi nahi
+
+
+KAAM KA PLAN: DAY BY DAY (12 din + 2 din buffer)
+---------------------------------------------------------------------
+Rozana ka usool: subah plan, kaam, shaam ko Git commit + Hassan ko chhota
+update (screenshot ya link). Din ke akhir me kaam chalta hua hona chahiye.
+
+DAY 1 - Setup aur database (3-4 ghante code, baqi planning)
+  Kya kiya:
+   - Hassan ko likh kar scope bheja, advance receipt rakhi
+   - Project banaya:  npx create-next-app@latest raza-fresh-mart  (JavaScript,
+     Tailwind, App Router chuno, TypeScript = No)
+   - npm i prisma @prisma/client ; npx prisma init
+   - Neon.tech par free PostgreSQL bana kar DATABASE_URL .env me daala
+   - prisma/schema.prisma me 4 tables likhe
+   - npx prisma migrate dev --name init
+   - GitHub par push, Vercel par deploy, Hassan ko live link
+  Sikhne ki cheez: relations (Product -> Category), snapshot price kyun.
+  Files: prisma/schema.prisma, lib/prisma.js, .env
+
+DAY 2 - Admin login aur product CRUD (shuruaat)
+  Kya kiya:
+   - lib/auth.js: password + signed cookie
+   - /admin/login page aur /api/admin/login, /logout
+   - (panel)/layout.js me isAdmin() check, nahi to redirect
+   - Category add/delete (CategoryManager + API)
+  Test: galat password, bina login /admin kholna.
+
+DAY 3 - Products aur FAST rate update
+  Kya kiya:
+   - Product add/edit/delete form (ProductForm + API)
+   - PriceList: ek line me naam, price input, mojood/khatam button
+   - Price blur ya Enter par PATCH se save, tick (✓) dikhta hai
+   - Search box (200 products me dhoondna)
+  Yehi Hassan ki sab se ahem zarurat hai: roz sabzi ka rate 2 minute me badle.
+  Mobile par khud test karo (Chrome DevTools -> phone view).
+
+DAY 4 - Customer home page
+  Kya kiya:
+   - app/layout.js: lang="ur" dir="rtl", Urdu font (Noto Naskh Arabic)
+   - Home page: search, category chips, product grid (Server Component)
+   - Khatam products neeche, "ختم ہے" badge
+  Design: hara rang (taazgi), bade text, 2 column grid.
+
+DAY 5 - Product card aur cart state
+  Kya kiya:
+   - CartContext (useState + localStorage)
+   - ProductCard: "شامل کریں" -> + / - stepper
+   - Kilo wali cheez 0.5 kg step, baqi 1 step
+   - Header me cart count
+
+DAY 6 - Cart page
+  Kya kiya:
+   - Cart list, quantity badalna, subtotal
+   - Delivery charge logic (lib/config.js): <1000 = 100, warna free
+   - "mazeed Rs X ka saman lein to delivery free" hint
+  Test: 999 aur 1000 par hudood check karo.
+
+DAY 7 - Checkout form aur order API
+  Kya kiya:
+   - Form: naam, phone (03xxxxxxxxx validate), pata, note
+   - Payment: COD ya EasyPaisa (number + transaction ID)
+   - POST /api/orders: validation, price DB se, stock check, order save
+   - Order done page /order/[code] (cuid code, taake koi dusre ka order
+     number guess na kar sake)
+
+DAY 8 - Order management
+  Kya kiya:
+   - Admin orders page: status tabs (Naya, Pack, Raaste me, ...)
+   - OrderCard + StatusButtons, PATCH /api/admin/orders/[id]
+   - Phone par tap-to-call, customer ko WhatsApp link
+
+DAY 9 - Delivery list
+  Kya kiya:
+   - /admin/delivery: sirf Pack aur Raaste me wale orders
+   - Har order par pata, phone, wasool karne wali raqam (COD), Maps link
+   - "Pahunch gaya" button delivery boy ke liye
+  Note: ye GPS tracking nahi, sirf address list. Scope me yehi likha tha.
+
+DAY 10 - WhatsApp alert
+  Kya kiya:
+   - lib/whatsapp.js: CallMeBot (free) ya WhatsApp Cloud API
+   - Order ke baad message: order no., naam, pata, items, total
+   - Fail ho jaye to order phir bhi save (try/catch)
+  Pehle CallMeBot se shuru karo: Hassan apne number ke liye key le leta hai.
+
+DAY 11 - Bulk import aur products ki entry
+  Kya kiya:
+   - /admin/products/import: Hassan se list lo (Excel/WhatsApp), format:
+        آلو, 90, kg, سبزی
+   - Ek click me 200 products, duplicate ho to sirf price update
+   - Tasveeren baad me (image link) ya default emoji
+
+DAY 12 - Testing, polish, demo
+  Kya kiya:
+   - Pura flow: order -> alert -> pack -> delivery -> delivered
+   - Android phone par test, slow internet par test
+   - Galat input (khali form, galat phone, khatam item)
+   - Hassan ko demo, 1 ghante ki training (rate update, order status)
+   - Feedback list banayi
+
+DAY 13-14 - Buffer
+  Hassan ke changes (2 free revisions), bug fixes, domain/hosting setup,
+  final deploy, handover.
+
+
+HAR DIN KA SAFAI KA RULE
+---------------------------------------------------------------------
+ - Chhote commits:  "add cart page", "fix delivery charge", ...
+ - Ek waqt me ek feature, chalta hua feature hi commit karo
+ - Pehle chalao, phir sundar banao
+ - Jab atak jao: error ka pura message parho, console.log lagao, 20 minute
+   se zyada atkne par madad lo
+
+
+PAYMENT AUR CLIENT HANDLING (practice ka asal maqsad)
+---------------------------------------------------------------------
+ - 40% advance (kaam shuru), 30% demo ke baad, 30% delivery par
+ - Har cheez likh kar: scope, shamil nahi list, revisions, bug-fix muddat
+ - Naya feature maange to: "Ye achi cheez hai, ye extra scope hai, is ka
+   alag rate aur din ye hain"
+ - Har 2-3 din me chhota update bhejo, client ko andhera me mat rakho
+ - Handover: admin password, GitHub access, hosting details, 1 page ki
+   hidayat (rate kaise badlein, order kaise dekhein)
+
+
+PROJECT CHALANE KE STEPS
+---------------------------------------------------------------------
+ 1. npm install
+ 2. .env.example ko .env banao aur values bharo
+ 3. npx prisma migrate dev --name init
+ 4. npm run db:seed
+ 5. npm run dev     (http://localhost:3000, admin: /admin)
+
+Deploy (Vercel + Neon):
+ - GitHub par push, Vercel me import
+ - Environment Variables wohi daalo jo .env me hain
+ - Build command pehle se "prisma generate && next build" hai
+
+Aam masle:
+ - "Can't reach database"  -> DATABASE_URL check karo (Neon me ?sslmode=require)
+ - Admin login nahi hota   -> ADMIN_PASSWORD aur SESSION_SECRET set hain?
+ - Urdu font nazar nahi aata -> internet chahiye (Google Fonts), ya font local rakho
+ - WhatsApp alert nahi aata -> OWNER_PHONE 92 se shuru, bina +, aur API key check
+
+
+SEEKHNE KA MASHWARA
+---------------------------------------------------------------------
+Is code ko copy mat karo, har file ko samjho. Har din ka kaam khud dobara
+likhne ki koshish karo, phir is project se compare karo. Aur sab se ahem:
+client ke har "mujhe ye chahiye" ke peeche asal zarurat dhoondo.
